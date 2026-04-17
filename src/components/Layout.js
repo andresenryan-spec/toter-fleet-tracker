@@ -15,6 +15,7 @@ export default function Layout() {
   const navItems = [
     { to: '/', label: 'Dashboard', icon: '▦', exact: true },
     { to: '/trucks', label: 'Fleet Tracker', icon: '◈' },
+    { to: '/timing', label: 'Stage Timing', icon: '◷' },
   ];
 
   return (
