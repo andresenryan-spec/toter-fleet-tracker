@@ -264,7 +264,7 @@ export default function TimingPage() {
 
               {ganttTrucks.map(truck => {
                 const stageDays = getStageDays(truck);
-                const total = stageDays.reduce((a, b) => a + b.days, 0) || 1;
+
                 return (
                   <div key={truck.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
                     <div style={{ width: 90, flexShrink: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', color: 'var(--accent)', fontWeight: 500 }}>
