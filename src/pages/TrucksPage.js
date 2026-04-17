@@ -56,6 +56,7 @@ export default function TrucksPage() {
   const [terminalFilter, setTerminalFilter] = useState('');
   const [showAdd, setShowAdd] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
 
   async function load() {

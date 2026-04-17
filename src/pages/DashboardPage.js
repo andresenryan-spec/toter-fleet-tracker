@@ -10,6 +10,7 @@ export default function DashboardPage() {
   const [trucks, setTrucks] = useState([]);
   const [recentUpdates, setRecentUpdates] = useState([]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {

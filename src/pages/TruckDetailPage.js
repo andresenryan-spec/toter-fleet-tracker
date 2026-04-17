@@ -22,6 +22,7 @@ export default function TruckDetailPage() {
   const [success, setSuccess] = useState('');
   const fileRef = useRef();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAll(); }, [id]);
 
   async function loadAll() {
