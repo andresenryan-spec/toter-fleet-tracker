@@ -174,7 +174,7 @@ export default function TruckDetailPage() {
                         {stage}
                       </div>
                       {isInternal ? (
-                        <input type="date" value={date || ''} onChange={e => updateStageDate(stage, e.target.value)}
+                        <input type="date" defaultValue={date || ''} onBlur={e => { if (e.target.value !== (date || '')) updateStageDate(stage, e.target.value); }}
                           style={{ marginTop: 4, fontSize: '0.78rem', padding: '3px 8px', width: 'auto' }} />
                       ) : (
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>
