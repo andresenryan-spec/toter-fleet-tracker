@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { supabase, STAGES, STAGE_COLORS, OUTFITTERS, TERMINALS } from '../lib/supabase';
+import { supabase, STAGES, STAGE_COLORS, STAGE_FIELD_MAP, OUTFITTERS, TERMINALS } from '../lib/supabase';
 import { useSession } from '../lib/SessionContext';
 import AddTruckModal from '../components/AddTruckModal';
+
+function daysInStage(truck) {
+  const field = STAGE_FIELD_MAP[truck.current_status];
+  if (!field || !truck[field]) return null;
+  const start = new Date(truck[field]);
+  const today = new Date();
+  return Math.floor((today - start) / 86400000);
+}
 
 export function StatusBadge({ status }) {
   const color = STAGE_COLORS[status] || '#8b949e';
@@ -132,6 +140,7 @@ export default function TrucksPage() {
                 {isInternal && <th>Outfitter</th>}
                 {isInternal && <th>Terminal</th>}
                 <th>Stage</th>
+                <th>Days in Stage</th>
                 <th>ETA</th>
                 <th>Updated</th>
                 <th></th>
@@ -139,9 +148,9 @@ export default function TrucksPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} style={{ textAlign: 'center', padding: 40 }}><div className="spinner" /></td></tr>
+                <tr><td colSpan={10} style={{ textAlign: 'center', padding: 40 }}><div className="spinner" /></td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9}><div className="empty-state"><h3>No trucks found</h3><p>Adjust your filters.</p></div></td></tr>
+                <tr><td colSpan={10}><div className="empty-state"><h3>No trucks found</h3><p>Adjust your filters.</p></div></td></tr>
               ) : filtered.map(truck => (
                 <tr key={truck.id}>
                   <td>
@@ -160,6 +169,15 @@ export default function TrucksPage() {
                     </td>
                   )}
                   <td><StatusBadge status={truck.current_status} /></td>
+                  <td style={{ fontSize: '0.85rem', fontFamily: "'JetBrains Mono', monospace" }}>
+                    {(() => {
+                      const d = daysInStage(truck);
+                      if (d === null) return <span style={{ color: 'var(--text-dim)' }}>—</span>;
+                      const target = { 'Built at OEM': 21, 'In Transit to Outfitter': 5, 'Outfitting in Progress': 30, 'Ready to Ship to Branding': 7, 'In Transit to Branding': 5, 'Branding in Progress': 7, 'Ready to Ship to Rocky Top': 5, 'Shipped to RT': 3, 'Dealer Inspection': 5, 'PDI Complete': 5 }[truck.current_status];
+                      const color = !target ? 'var(--text)' : d > target * 1.1 ? '#f85149' : d > target * 0.85 ? '#d29922' : '#3fb950';
+                      return <span style={{ color, fontWeight: 600 }}>{d}d</span>;
+                    })()}
+                  </td>
                   <td style={{ fontSize: '0.82rem', color: truck.eta ? 'var(--info)' : 'var(--text-dim)' }}>
                     {truck.eta ? new Date(truck.eta).toLocaleDateString() : '—'}
                   </td>
