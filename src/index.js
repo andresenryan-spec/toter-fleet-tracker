@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TrucksPage from './pages/TrucksPage';
 import TruckDetailPage from './pages/TruckDetailPage';
+import TimingPage from './pages/TimingPage';
 
 function ProtectedRoute({ children }) {
   const { session } = useSession();
@@ -25,6 +26,7 @@ function App() {
             <Route index element={<DashboardPage />} />
             <Route path="trucks" element={<TrucksPage />} />
             <Route path="trucks/:id" element={<TruckDetailPage />} />
+            <Route path="timing" element={<TimingPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
