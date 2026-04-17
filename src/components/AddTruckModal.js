@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { supabase, OUTFITTERS } from '../lib/supabase';
+import { supabase, OUTFITTERS, TERMINALS } from '../lib/supabase';
 
 export default function AddTruckModal({ onClose, onSaved }) {
   const [form, setForm] = useState({
     unit: '', vin: '', order_number: '', model: '',
     bus_unit: 'Connect', outfitter_name: '', ship_to: '',
-    invoice: '', built_at_oem_date: '', notes: '',
+    invoice: '', built_at_oem_date: '', pre_assigned_terminal: '', notes: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -19,6 +19,7 @@ export default function AddTruckModal({ onClose, onSaved }) {
     const payload = { ...form };
     if (!payload.built_at_oem_date) delete payload.built_at_oem_date;
     if (!payload.outfitter_name) delete payload.outfitter_name;
+    if (!payload.pre_assigned_terminal) delete payload.pre_assigned_terminal;
     const { error } = await supabase.from('trucks').insert(payload);
     setSaving(false);
     if (error) { setError(error.message); return; }
@@ -73,17 +74,26 @@ export default function AddTruckModal({ onClose, onSaved }) {
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Invoice</label>
-              <input value={form.invoice} onChange={e => set('invoice', e.target.value)} />
+              <label className="form-label">Pre-Assigned Terminal</label>
+              <select value={form.pre_assigned_terminal} onChange={e => set('pre_assigned_terminal', e.target.value)}>
+                <option value="">— Not assigned —</option>
+                {TERMINALS.map(t => <option key={t}>{t}</option>)}
+              </select>
             </div>
             <div className="form-group">
               <label className="form-label">Built at OEM Date</label>
               <input type="date" value={form.built_at_oem_date} onChange={e => set('built_at_oem_date', e.target.value)} />
             </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Ship To</label>
-            <input value={form.ship_to} onChange={e => set('ship_to', e.target.value)} />
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Invoice</label>
+              <input value={form.invoice} onChange={e => set('invoice', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Ship To</label>
+              <input value={form.ship_to} onChange={e => set('ship_to', e.target.value)} />
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label">Notes</label>

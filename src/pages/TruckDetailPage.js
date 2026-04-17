@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase, STAGES, STAGE_FIELD_MAP, STAGE_COLORS, logUpdate } from '../lib/supabase';
+import { supabase, STAGES, STAGE_FIELD_MAP, STAGE_COLORS, TERMINALS, logUpdate } from '../lib/supabase';
 import { useSession } from '../lib/SessionContext';
 import { StatusBadge } from './TrucksPage';
 
@@ -15,6 +15,7 @@ export default function TruckDetailPage() {
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState('');
   const [eta, setEta] = useState('');
+  const [terminal, setTerminal] = useState('');
   const [photoCaption, setPhotoCaption] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState('');
@@ -34,6 +35,7 @@ export default function TruckDetailPage() {
     setUpdates(u || []);
     setPhotos(p || []);
     setEta(t?.eta || '');
+    setTerminal(t?.pre_assigned_terminal || '');
     setLoading(false);
   }
 
@@ -63,6 +65,15 @@ export default function TruckDetailPage() {
     await supabase.from('trucks').update({ eta: eta || null }).eq('id', id);
     await logUpdate(id, session?.label, 'ETA Updated', truck.eta, eta, null);
     flash('ETA saved');
+    setSaving(false);
+    loadAll();
+  }
+
+  async function saveTerminal() {
+    setSaving(true);
+    await supabase.from('trucks').update({ pre_assigned_terminal: terminal || null }).eq('id', id);
+    await logUpdate(id, session?.label, 'Terminal Assigned', truck.pre_assigned_terminal, terminal, null);
+    flash('Terminal saved');
     setSaving(false);
     loadAll();
   }
@@ -106,7 +117,7 @@ export default function TruckDetailPage() {
   if (!truck) return <div className="alert alert-error">Truck not found.</div>;
 
   const currentIdx = STAGES.indexOf(truck.current_status);
-  const canAdvance = currentIdx < STAGES.length - 1;
+  const isComplete = truck.current_status === 'In Service';
 
   return (
     <div>
@@ -116,6 +127,11 @@ export default function TruckDetailPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '2rem', fontWeight: 800 }}>Unit {truck.unit}</h1>
             <StatusBadge status={truck.current_status} />
+            {truck.pre_assigned_terminal && (
+              <span style={{ background: 'rgba(240,180,41,0.12)', color: 'var(--accent)', padding: '3px 10px', borderRadius: 4, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.05em' }}>
+                📍 {truck.pre_assigned_terminal}
+              </span>
+            )}
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 4, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <span className="mono">{truck.vin}</span>
@@ -153,11 +169,7 @@ export default function TruckDetailPage() {
                       <div style={{ position: 'absolute', left: 6, top: 17, width: 2, height: '100%', zIndex: 0, background: isPast ? 'var(--border)' : 'var(--border-light)' }} />
                     )}
                     <div style={{ flex: 1, paddingTop: 2 }}>
-                      <div style={{
-                        fontFamily: "'Barlow Condensed', sans-serif", fontWeight: isCurrent ? 700 : 600,
-                        fontSize: '0.9rem', letterSpacing: '0.03em', textTransform: 'uppercase',
-                        color: isFuture ? 'var(--text-dim)' : isCurrent ? color : 'var(--text)',
-                      }}>
+                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: isCurrent ? 700 : 600, fontSize: '0.9rem', letterSpacing: '0.03em', textTransform: 'uppercase', color: isFuture ? 'var(--text-dim)' : isCurrent ? color : 'var(--text)' }}>
                         {stage}
                       </div>
                       {isInternal ? (
@@ -174,7 +186,7 @@ export default function TruckDetailPage() {
               })}
             </div>
 
-            {canAdvance ? (
+            {!isComplete ? (
               <div style={{ marginTop: 4 }}>
                 <div className="form-group">
                   <label className="form-label">Note (optional)</label>
@@ -185,18 +197,34 @@ export default function TruckDetailPage() {
                 </button>
               </div>
             ) : (
-              <div className="alert alert-success" style={{ marginTop: 8 }}>✓ PDI Complete — onboarding finished.</div>
+              <div className="alert alert-success" style={{ marginTop: 8 }}>
+                ✓ In Service — This truck has completed its full lifecycle.
+              </div>
             )}
           </div>
 
           {/* ETA */}
           <div className="card">
-            <h3 style={styles.sectionTitle}>ETA</h3>
+            <h3 style={styles.sectionTitle}>ETA from Outfitter</h3>
             <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
               <input type="date" value={eta} onChange={e => setEta(e.target.value)} style={{ flex: 1 }} />
               <button className="btn btn-ghost" onClick={saveEta} disabled={saving}>Save</button>
             </div>
           </div>
+
+          {/* Pre-Assigned Terminal - internal only */}
+          {isInternal && (
+            <div className="card">
+              <h3 style={styles.sectionTitle}>Pre-Assigned Terminal</h3>
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <select value={terminal} onChange={e => setTerminal(e.target.value)} style={{ flex: 1 }}>
+                  <option value="">— Not assigned —</option>
+                  {TERMINALS.map(t => <option key={t}>{t}</option>)}
+                </select>
+                <button className="btn btn-ghost" onClick={saveTerminal} disabled={saving}>Save</button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right: Details, photos, activity */}
@@ -206,14 +234,19 @@ export default function TruckDetailPage() {
             <div className="card">
               <h3 style={styles.sectionTitle}>Truck Details</h3>
               <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px', fontSize: '0.85rem' }}>
-                {[['Order #', truck.order_number], ['Model', truck.model], ['Bus Unit', truck.bus_unit], ['Invoice', truck.invoice], ['Ship To', truck.ship_to]].map(([k, v]) =>
-                  v ? (
-                    <React.Fragment key={k}>
-                      <span style={{ color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{k}</span>
-                      <span>{v}</span>
-                    </React.Fragment>
-                  ) : null
-                )}
+                {[
+                  ['Order #', truck.order_number],
+                  ['Model', truck.model],
+                  ['Bus Unit', truck.bus_unit],
+                  ['Invoice', truck.invoice],
+                  ['Ship To', truck.ship_to],
+                  ['Outfitter', truck.outfitter_name],
+                ].map(([k, v]) => v ? (
+                  <React.Fragment key={k}>
+                    <span style={{ color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{k}</span>
+                    <span>{v}</span>
+                  </React.Fragment>
+                ) : null)}
               </div>
             </div>
           )}

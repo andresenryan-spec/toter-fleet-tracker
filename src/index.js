@@ -8,12 +8,10 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TrucksPage from './pages/TrucksPage';
 import TruckDetailPage from './pages/TruckDetailPage';
-import TrucksToSellPage from './pages/TrucksToSellPage';
 
-function ProtectedRoute({ children, internalOnly = false }) {
-  const { session, isInternal } = useSession();
+function ProtectedRoute({ children }) {
+  const { session } = useSession();
   if (!session) return <Navigate to="/login" replace />;
-  if (internalOnly && !isInternal) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -27,7 +25,6 @@ function App() {
             <Route index element={<DashboardPage />} />
             <Route path="trucks" element={<TrucksPage />} />
             <Route path="trucks/:id" element={<TruckDetailPage />} />
-            <Route path="trucks-to-sell" element={<ProtectedRoute internalOnly><TrucksToSellPage /></ProtectedRoute>} />
           </Route>
         </Routes>
       </BrowserRouter>

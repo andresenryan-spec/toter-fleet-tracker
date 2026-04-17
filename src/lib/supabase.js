@@ -54,6 +54,7 @@ export const STAGES = [
   'Shipped to RT',
   'Dealer Inspection',
   'PDI Complete',
+  'In Service',
 ];
 
 export const STAGE_FIELD_MAP = {
@@ -67,6 +68,7 @@ export const STAGE_FIELD_MAP = {
   'Shipped to RT':                  'shipped_to_rt_date',
   'Dealer Inspection':              'dealer_inspection_date',
   'PDI Complete':                   'pdi_complete_date',
+  'In Service':                     'in_service_date',
 };
 
 export const STAGE_COLORS = {
@@ -80,7 +82,16 @@ export const STAGE_COLORS = {
   'Shipped to RT':                  '#84cc16',
   'Dealer Inspection':              '#e879f9',
   'PDI Complete':                   '#22c55e',
+  'In Service':                     '#f0b429',
 };
+
+export const TERMINALS = [
+  '7012 TN',
+  '7013 AL',
+  '7014 TX',
+  '7015 NC',
+  '7016 AR',
+];
 
 export const OUTFITTERS = [
   'B&G Truck Conversions',
