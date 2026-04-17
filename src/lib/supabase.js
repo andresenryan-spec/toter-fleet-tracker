@@ -32,8 +32,8 @@ export const ACCESS_PROFILES = {
   worldwide: {
     password: 'WorldwideTrucks26',
     label: 'Worldwide Equipment',
-    partner: 'Worldwide Equipment',
-    canSeeAll: false,
+    partner: null,
+    canSeeAll: true,
     canSeeSell: false,
   },
 };
