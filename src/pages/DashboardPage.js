@@ -50,8 +50,8 @@ export default function DashboardPage() {
   }));
 
   const total = trucks.length;
-  const complete = stageCounts.find(s => s.name === 'PDI Complete')?.count || 0;
-  const inProgress = total - complete - (stageCounts.find(s => s.name === 'Built at OEM')?.count || 0);
+  const inService = stageCounts.find(s => s.name === 'In Service')?.count || 0;
+  const inProgress = total - inService - (stageCounts.find(s => s.name === 'Built at OEM')?.count || 0);
 
   const outfitterCounts = Object.entries(
     trucks.reduce((acc, t) => {
@@ -81,8 +81,8 @@ export default function DashboardPage() {
         {[
           { label: 'Total Trucks', value: total, color: 'var(--text)' },
           { label: 'In Progress', value: inProgress, color: 'var(--warning)' },
-          { label: 'PDI Complete', value: complete, color: 'var(--success)' },
-          { label: 'Completion', value: total ? Math.round((complete / total) * 100) + '%' : '0%', color: 'var(--info)' },
+          { label: 'In Service', value: inService, color: 'var(--success)' },
+          { label: 'Completion', value: total ? Math.round((inService / total) * 100) + '%' : '0%', color: 'var(--info)' },
         ].map(k => (
           <div key={k.label} className="card" style={{ textAlign: 'center' }}>
             <div style={styles.kpiLabel}>{k.label}</div>

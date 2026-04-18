@@ -53,6 +53,11 @@ function exportToXLS(trucks) {
   URL.revokeObjectURL(url);
 }
 
+function SortIcon({ field, current, dir }) {
+  if (current !== field) return <span style={{ color: 'var(--text-dim)', fontSize: '0.65rem', marginLeft: 3 }}>↕</span>;
+  return <span style={{ color: 'var(--accent)', fontSize: '0.65rem', marginLeft: 3 }}>{dir === 'asc' ? '↑' : '↓'}</span>;
+}
+
 export default function TrucksPage() {
   const { session, isInternal } = useSession();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -63,6 +68,9 @@ export default function TrucksPage() {
   const [outfitterFilter, setOutfitterFilter] = useState('');
   const [terminalFilter, setTerminalFilter] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [showInService, setShowInService] = useState(false);
+  const [sortField, setSortField] = useState('updated_at');
+  const [sortDir, setSortDir] = useState('desc');
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
@@ -78,25 +86,53 @@ export default function TrucksPage() {
     setLoading(false);
   }
 
-  const filtered = trucks.filter(t => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || t.unit?.toLowerCase().includes(q) || t.vin?.toLowerCase().includes(q) || t.order_number?.toLowerCase().includes(q);
-    const matchStatus = !statusFilter || t.current_status === statusFilter;
-    const matchOutfitter = !outfitterFilter || t.outfitter_name === outfitterFilter;
-    const matchTerminal = !terminalFilter || t.pre_assigned_terminal === terminalFilter;
-    return matchSearch && matchStatus && matchOutfitter && matchTerminal;
-  });
+  const filtered = trucks
+    .filter(t => {
+      const q = search.toLowerCase();
+      const matchSearch = !q || t.unit?.toLowerCase().includes(q) || t.vin?.toLowerCase().includes(q) || t.order_number?.toLowerCase().includes(q);
+      const matchStatus = !statusFilter || t.current_status === statusFilter;
+      const matchOutfitter = !outfitterFilter || t.outfitter_name === outfitterFilter;
+      const matchTerminal = !terminalFilter || t.pre_assigned_terminal === terminalFilter;
+      const matchInService = showInService || t.current_status !== 'In Service';
+      return matchSearch && matchStatus && matchOutfitter && matchTerminal && matchInService;
+    })
+    .sort((a, b) => {
+      let aVal = a[sortField] || '';
+      let bVal = b[sortField] || '';
+      if (sortField === 'daysInStage') {
+        aVal = daysInStage(a) ?? -1;
+        bVal = daysInStage(b) ?? -1;
+        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      return sortDir === 'asc'
+        ? String(aVal).localeCompare(String(bVal))
+        : String(bVal).localeCompare(String(aVal));
+    });
+
+  function toggleSort(field) {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('asc'); }
+  }
+
+  const inServiceCount = trucks.filter(t => t.current_status === 'In Service').length;
 
   return (
     <div>
       <div className="page-header">
         <div>
           <h1 className="page-title">Fleet Tracker</h1>
-          <p className="page-subtitle">{filtered.length} of {trucks.length} trucks</p>
+          <p className="page-subtitle">{filtered.length} of {trucks.length} trucks{!showInService && inServiceCount > 0 ? ` · ${inServiceCount} In Service hidden` : ''}</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-ghost" onClick={() => exportToXLS(filtered)} title="Export to Excel">
             ⬇ Export XLS
+          </button>
+          <button
+            className="btn btn-ghost"
+            onClick={() => setShowInService(s => !s)}
+            style={{ borderColor: showInService ? 'var(--accent)' : undefined, color: showInService ? 'var(--accent)' : undefined }}
+          >
+            {showInService ? '✓ Showing In Service' : `Show In Service (${inServiceCount})`}
           </button>
           {isInternal && <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Truck</button>}
         </div>
@@ -134,15 +170,15 @@ export default function TrucksPage() {
           <table>
             <thead>
               <tr>
-                <th>Unit</th>
+                <th style={{ cursor:'pointer' }} onClick={() => toggleSort('unit')}>Unit <SortIcon field="unit" current={sortField} dir={sortDir} /></th>
                 <th>VIN</th>
-                <th>Model</th>
-                {isInternal && <th>Outfitter</th>}
-                {isInternal && <th>Terminal</th>}
-                <th>Stage</th>
-                <th>Days in Stage</th>
-                <th>ETA</th>
-                <th>Updated</th>
+                <th style={{ cursor:'pointer' }} onClick={() => toggleSort('model')}>Model <SortIcon field="model" current={sortField} dir={sortDir} /></th>
+                {isInternal && <th style={{ cursor:'pointer' }} onClick={() => toggleSort('outfitter_name')}>Outfitter <SortIcon field="outfitter_name" current={sortField} dir={sortDir} /></th>}
+                {isInternal && <th style={{ cursor:'pointer' }} onClick={() => toggleSort('pre_assigned_terminal')}>Terminal <SortIcon field="pre_assigned_terminal" current={sortField} dir={sortDir} /></th>}
+                <th style={{ cursor:'pointer' }} onClick={() => toggleSort('current_status')}>Stage <SortIcon field="current_status" current={sortField} dir={sortDir} /></th>
+                <th style={{ cursor:'pointer' }} onClick={() => toggleSort('daysInStage')}>Days in Stage <SortIcon field="daysInStage" current={sortField} dir={sortDir} /></th>
+                <th style={{ cursor:'pointer' }} onClick={() => toggleSort('eta')}>ETA <SortIcon field="eta" current={sortField} dir={sortDir} /></th>
+                <th style={{ cursor:'pointer' }} onClick={() => toggleSort('updated_at')}>Updated <SortIcon field="updated_at" current={sortField} dir={sortDir} /></th>
                 <th></th>
               </tr>
             </thead>
