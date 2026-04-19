@@ -5,21 +5,28 @@ import { useSession } from '../lib/SessionContext';
 export default function LoginPage() {
   const { login } = useSession();
   const navigate = useNavigate();
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const ok = login(password.trim());
-    setLoading(false);
-    if (ok) {
-      navigate('/');
-    } else {
-      setError('Incorrect password. Contact your administrator.');
+    try {
+      const ok = await login(email.trim().toLowerCase(), password.trim());
+      if (ok) {
+        navigate('/');
+      } else {
+        setError('Incorrect email or password. Contact your administrator.');
+        setPassword('');
+      }
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.');
       setPassword('');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -34,17 +41,32 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit}>
           {error && <div className="alert alert-error">{error}</div>}
+
           <div className="form-group">
-            <label className="form-label">Access Password</label>
+            <label className="form-label">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              autoComplete="username"
+              autoFocus
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Password</label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="Enter your password"
-              autoFocus
+              autoComplete="current-password"
               required
             />
           </div>
+
           <button
             type="submit"
             className="btn btn-primary"
@@ -52,7 +74,7 @@ export default function LoginPage() {
             disabled={loading}
           >
             {loading
-              ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Checking…</>
+              ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Checking...</>
               : 'Enter'}
           </button>
         </form>
