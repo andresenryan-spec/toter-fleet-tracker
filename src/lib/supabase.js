@@ -6,36 +6,11 @@ export const supabase = createClient(
 );
 
 // ── Access profiles ──────────────────────────────────────────
-// Each entry: { password, label, partner, canSeeAll, canSeeSell }
 export const ACCESS_PROFILES = {
-  internal: {
-    password: 'Dreamhome26',
-    label: 'Internal',
-    partner: null,       // null = sees all trucks
-    canSeeAll: true,
-    canSeeSell: true,
-  },
-  bg: {
-    password: 'BigTrucks26',
-    label: 'B&G Truck Conversions',
-    partner: 'B&G Truck Conversions',
-    canSeeAll: false,
-    canSeeSell: false,
-  },
-  unique: {
-    password: 'UniqueTrucks26',
-    label: 'Unique Fabrications Inc',
-    partner: 'Unique Fabrications Inc',
-    canSeeAll: false,
-    canSeeSell: false,
-  },
-  worldwide: {
-    password: 'WorldwideTrucks26',
-    label: 'Worldwide Equipment',
-    partner: null,
-    canSeeAll: true,
-    canSeeSell: false,
-  },
+  internal: { password: 'Dreamhome26', label: 'Internal', partner: null, canSeeAll: true, canSeeSell: true },
+  bg:       { password: 'BigTrucks26', label: 'B&G Truck Conversions', partner: 'B&G Truck Conversions', canSeeAll: false, canSeeSell: false },
+  unique:   { password: 'UniqueTrucks26', label: 'Unique Fabrications Inc', partner: 'Unique Fabrications Inc', canSeeAll: false, canSeeSell: false },
+  worldwide:{ password: 'WorldwideTrucks26', label: 'Worldwide Equipment', partner: null, canSeeAll: true, canSeeSell: false },
 };
 
 export function checkPassword(input) {
@@ -86,11 +61,7 @@ export const STAGE_COLORS = {
 };
 
 export const TERMINALS = [
-  '7012 TN',
-  '7013 AL',
-  '7014 TX',
-  '7015 NC',
-  '7016 AR',
+  '7012 TN', '7013 AL', '7014 TX', '7015 NC', '7016 AR',
 ];
 
 export const OUTFITTERS = [
@@ -98,6 +69,22 @@ export const OUTFITTERS = [
   'Unique Fabrications Inc',
   'Worldwide Equipment',
 ];
+
+// ── Default location per stage ────────────────────────────────
+// Dublin, VA = OEM build location
+// Outfitter stages use ship_to field if available
+// All other stages default to Rocky Top, TN
+export function defaultLocation(stage, truck) {
+  if (stage === 'Built at OEM') return 'Dublin, VA';
+  if (
+    stage === 'In Transit to Outfitter' ||
+    stage === 'Outfitting in Progress'  ||
+    stage === 'Ready to Ship to Branding'
+  ) {
+    return truck?.ship_to || truck?.outfitter_name || 'Outfitter Location';
+  }
+  return 'Rocky Top, TN';
+}
 
 export async function logUpdate(truckId, changedBy, fieldChanged, oldValue, newValue, note) {
   await supabase.from('truck_updates').insert({
