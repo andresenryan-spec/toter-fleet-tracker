@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase, STAGES, STAGE_FIELD_MAP, STAGE_COLORS, TERMINALS, logUpdate } from '../lib/supabase';
+import { supabase, STAGES, STAGE_FIELD_MAP, STAGE_COLORS, TERMINALS, logUpdate, defaultLocation } from '../lib/supabase';
 import { useSession } from '../lib/SessionContext';
 import { StatusBadge } from './TrucksPage';
 
@@ -16,6 +16,7 @@ export default function TruckDetailPage() {
   const [note, setNote] = useState('');
   const [eta, setEta] = useState('');
   const [terminal, setTerminal] = useState('');
+  const [location, setLocation] = useState('');
   const [photoCaption, setPhotoCaption] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState('');
@@ -37,6 +38,8 @@ export default function TruckDetailPage() {
     setPhotos(p || []);
     setEta(t?.eta || '');
     setTerminal(t?.pre_assigned_terminal || '');
+    // Use saved location or fall back to stage default
+    setLocation(t?.current_location || defaultLocation(t?.current_status, t) || '');
     setLoading(false);
   }
 
@@ -52,11 +55,21 @@ export default function TruckDetailPage() {
     const field = STAGE_FIELD_MAP[nextStage];
     const today = new Date().toISOString().split('T')[0];
     setSaving(true);
-    const { error } = await supabase.from('trucks').update({ [field]: today }).eq('id', id);
+
+    // Auto-compute new default location for the next stage
+    const newLocation = defaultLocation(nextStage, truck);
+
+    const { error } = await supabase.from('trucks').update({
+      [field]: today,
+      current_location: newLocation,
+    }).eq('id', id);
+
     if (error) { flash(error.message, true); setSaving(false); return; }
     await logUpdate(id, session?.label, 'Status Advanced', truck.current_status, nextStage, note || null);
+    await logUpdate(id, session?.label, 'Location Updated', truck.current_location, newLocation, null);
     setNote('');
-    flash(`Advanced to "${nextStage}"`);
+    setLocation(newLocation);
+    flash(`Advanced to "${nextStage}" — Location set to ${newLocation}`);
     setSaving(false);
     loadAll();
   }
@@ -75,6 +88,15 @@ export default function TruckDetailPage() {
     await supabase.from('trucks').update({ pre_assigned_terminal: terminal || null }).eq('id', id);
     await logUpdate(id, session?.label, 'Terminal Assigned', truck.pre_assigned_terminal, terminal, null);
     flash('Terminal saved');
+    setSaving(false);
+    loadAll();
+  }
+
+  async function saveLocation() {
+    setSaving(true);
+    await supabase.from('trucks').update({ current_location: location || null }).eq('id', id);
+    await logUpdate(id, session?.label, 'Location Updated', truck.current_location, location, null);
+    flash('Location saved');
     setSaving(false);
     loadAll();
   }
@@ -131,6 +153,11 @@ export default function TruckDetailPage() {
             {truck.pre_assigned_terminal && (
               <span style={{ background: 'rgba(240,180,41,0.12)', color: 'var(--accent)', padding: '3px 10px', borderRadius: 4, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.05em' }}>
                 📍 {truck.pre_assigned_terminal}
+              </span>
+            )}
+            {(truck.current_location || defaultLocation(truck.current_status, truck)) && (
+              <span style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6', padding: '3px 10px', borderRadius: 4, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.05em' }}>
+                🏭 {truck.current_location || defaultLocation(truck.current_status, truck)}
               </span>
             )}
           </div>
@@ -204,6 +231,33 @@ export default function TruckDetailPage() {
             )}
           </div>
 
+          {/* Current Location */}
+          <div className="card">
+            <h3 style={styles.sectionTitle}>Current Location</h3>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4, marginBottom: 10 }}>
+              Auto-set when stage advances. Edit manually if needed.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                placeholder="e.g. Dublin, VA"
+                style={{ flex: 1 }}
+              />
+              <button className="btn btn-ghost" onClick={saveLocation} disabled={saving}>Save</button>
+            </div>
+            <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {['Dublin, VA', truck.ship_to || truck.outfitter_name, 'Rocky Top, TN'].filter(Boolean).map(loc => (
+                <button key={loc} className="btn btn-ghost btn-sm"
+                  style={{ fontSize: '0.72rem', padding: '3px 10px' }}
+                  onClick={() => setLocation(loc)}>
+                  {loc}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* ETA */}
           <div className="card">
             <h3 style={styles.sectionTitle}>ETA from Outfitter</h3>
@@ -242,6 +296,7 @@ export default function TruckDetailPage() {
                   ['Invoice', truck.invoice],
                   ['Ship To', truck.ship_to],
                   ['Outfitter', truck.outfitter_name],
+                  ['Current Location', truck.current_location || defaultLocation(truck.current_status, truck)],
                 ].map(([k, v]) => v ? (
                   <React.Fragment key={k}>
                     <span style={{ color: 'var(--text-muted)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{k}</span>
