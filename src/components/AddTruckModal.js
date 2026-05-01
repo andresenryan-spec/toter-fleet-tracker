@@ -5,7 +5,8 @@ export default function AddTruckModal({ onClose, onSaved }) {
   const [form, setForm] = useState({
     unit: '', vin: '', order_number: '', model: '',
     bus_unit: 'Connect', outfitter_name: '', ship_to: '',
-    invoice: '', built_at_oem_date: '', pre_assigned_terminal: '', notes: '',
+    invoice: '', built_at_oem_date: '', pre_assigned_terminal: '',
+    current_location: 'Dublin, VA', notes: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -94,6 +95,11 @@ export default function AddTruckModal({ onClose, onSaved }) {
               <label className="form-label">Ship To</label>
               <input value={form.ship_to} onChange={e => set('ship_to', e.target.value)} />
             </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Current Location</label>
+            <input value={form.current_location} onChange={e => set('current_location', e.target.value)} placeholder="Dublin, VA" />
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>Defaults to Dublin, VA for new trucks at OEM</div>
           </div>
           <div className="form-group">
             <label className="form-label">Notes</label>
