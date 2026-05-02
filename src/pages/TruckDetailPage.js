@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase, STAGES, STAGE_FIELD_MAP, STAGE_COLORS, TERMINALS, logUpdate, defaultLocation } from '../lib/supabase';
+import { supabase, STAGES, STAGE_FIELD_MAP, STAGE_COLORS, TERMINALS, logUpdate, defaultLocation, syncAssetToFleetManager } from '../lib/supabase';
 import { useSession } from '../lib/SessionContext';
 import { StatusBadge } from './TrucksPage';
 
@@ -67,9 +67,17 @@ export default function TruckDetailPage() {
     if (error) { flash(error.message, true); setSaving(false); return; }
     await logUpdate(id, session?.label, 'Status Advanced', truck.current_status, nextStage, note || null);
     await logUpdate(id, session?.label, 'Location Updated', truck.current_location, newLocation, null);
+
+    // If advancing to In Service, sync to Fleet Manager Asset Registry
+    if (nextStage === 'In Service') {
+      await syncAssetToFleetManager({ ...truck, current_status: nextStage });
+      flash(`✓ "${truck.unit}" is In Service and added to Fleet Manager Asset Registry!`);
+    } else {
+      flash(`Advanced to "${nextStage}" — Location set to ${newLocation}`);
+    }
+
     setNote('');
     setLocation(newLocation);
-    flash(`Advanced to "${nextStage}" — Location set to ${newLocation}`);
     setSaving(false);
     loadAll();
   }
